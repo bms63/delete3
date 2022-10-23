@@ -2,21 +2,9 @@
 name: Check URLs
 
 on:
-  push:
     branches:
       - main
       - devel
-      - pre-release
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-    branches:
-      - main
-      - devel
-      - pre-release
   workflow_dispatch:
   workflow_call:
 
