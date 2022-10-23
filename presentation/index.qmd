@@ -1,0 +1,468 @@
+---
+title: "CI/CD Workshop for R Packages"
+subtitle: "R in Pharma, 2022"
+format:
+  revealjs: 
+    slide-number: true
+    chalkboard: 
+      buttons: false
+    preview-links: auto
+    logo: https://avatars.githubusercontent.com/u/84541169
+    footer: <[CI-CD GitHub](https://github.com/pharmaverse/cicdworkshop.rinpharma2022)>
+    theme: [moon, custom.scss]
+    from: markdown+emoji
+---
+
+
+
+
+## Hello CI/CD
+
+<br>
+
+This workshop/presentation will both discuss and show you how to implement 8 simple CI/CD workflows for a R package
+
+
+## Setup for Workshop
+
+::: {.incremental}
+- Use GitHub Template from [CI/CD Workshop at R/Pharma conference 2022](https://github.com/pharmaverse/cicdworkshop.rinpharma2022)
+- Clone into your RStudio Session and switch to `devel` branch
+- Install the `{devtools}` package.
+- Use `devtools::install_dev_deps()` to quickly get all necessary packages
+- On GitHub, set up a Pull Request of `devel` branch into `main`
+:::
+
+## Flow for Workshop
+
+::: {.incremental}
+- Discuss the need for the Workflow
+- In your dev branch:
+    - Copy Code from Presentation and place into `.github/workflows` folder
+    - Push up into dev branch
+    - Watch GitHub give you feedback on the workflow
+    - Address Feedback and push back up to dev branch.
+    - Discuss Successful Implementation
+- Checks can take a few minutes, so we will discuss while they are running. 
+:::
+
+## Why use CI/CD for a R package?
+
+::: {.incremental}
+- Reason 1 :heavy_check_mark:
+- Reason 1 :heavy_check_mark:
+- Reason 1 :heavy_check_mark:
+- Reason 1 :heavy_check_mark:
+- Reason 1 :heavy_check_mark:
+:::
+
+## Two uses cases for discussion:
+
+- [{admiral}](https://pharmaverse.github.io/admiral/index.html)
+
+  Something what about what about
+
+- NEST
+
+  Something what about what about
+
+## admiral
+
+
+## admiral CI/CD
+
+## NEST
+
+## NEST CI/CD
+
+## The R Package for the Workshop
+
+```{.r eval=FALSE}
+
+#' Hello Workshop Attendees
+#'
+#' Welcomes the CI/CD workshop attendees
+#' @author Yourself
+#' @details Greet workshop attendees
+#' @return Happy Message
+#' @export
+#' @examples
+#' hello()
+hello <- function() {
+  message("Welcome to the cicdworkshop!")
+}
+
+```
+
+## The R Package for the Workshop
+
+Package is super lean to help focus on the CI/CD part.
+
+```{r}
+library(fs)
+tree <- dir_tree("../",recurse=1)
+```
+## The 8 Workflows we are going to implement
+
+::: {.absolute top="0" left="100%"}
+::: {.sectionhead}
+1 [2 3 4 5 6 7 8]{style="opacity:0.25"}
+:::
+:::
+<!-- https://fontawesome.com/icons/file-lines?s=solid&f=classic  -->
+ 
+::: {.incremental}
+1. R-CMD Check &nbsp; &nbsp; `r fontawesome::fa("code", "yellow")` 
+1. Linters  &nbsp; &nbsp;`r fontawesome::fa("file-lines", "yellow")` 
+1. Documentation &nbsp; &nbsp;`r fontawesome::fa("book", "yellow")` 
+1. Website Links &nbsp; &nbsp;`r fontawesome::fa("link", "yellow")`
+1. Publishing a pkgdown site &nbsp; &nbsp;`r fontawesome::fa("wifi", "yellow")`
+1. Template Scripts &nbsp; &nbsp;`r fontawesome::fa("scroll", "yellow")`
+1. Test Coverage &nbsp; &nbsp;`r fontawesome::fa("car-burst", "yellow")`
+1. Spelling Checks &nbsp; &nbsp;`r fontawesome::fa("pen", "yellow")`
+:::
+
+## R-CMD Checks `r fontawesome::fa("code", "yellow")`
+
+::: {.absolute top="0" left="100%"}
+::: {.sectionhead}
+1 [2 3 4 5 6 7 8]{style="opacity:0.25"}
+:::
+:::
+
+<br>
+Why have a workflow that checks the Package Build?
+<br>
+
+
+::: {.incremental}
+- Check to make sure it runs on multiple versions of R
+- Check to make sure it runs on multiple snapshots of R packages
+- Check to make sure it runs on different OS
+- Check integrity of code from contributor
+:::
+
+
+## R-CMD Checks
+
+::: {.absolute top="0" left="100%"}
+::: {.sectionhead}
+1 [2 3 4 5 6 7 8]{style="opacity:0.25"}
+:::
+:::
+
+``` {.r}
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      error-on:
+        description: Input for the 'error_on' parameter in rcmdcheck::rcmdcheck()
+        required: false
+        default: note
+        type: string
+  push:
+    branches:
+      - main
+      - devel
+  pull_request:
+    branches:
+      - main
+      - devel
+
+name: R CMD Check
+
+concurrency:
+  group: r-cmd-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    if: >
+      !contains(github.event.commits[0].message, '[skip r-cmd-check]')
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: ubuntu-latest, r: '3.6', repos: 'https://cran.microsoft.com/snapshot/2020-02-29/'}
+          - {os: ubuntu-latest, r: '4.0', repos: 'https://cran.microsoft.com/snapshot/2021-03-31/'}
+          - {os: ubuntu-20.04, r: 'release', repos: 'https://packagemanager.rstudio.com/cran/__linux__/focal/latest'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: true
+      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+      R_REPOS: ${{ matrix.config.repos }}
+
+    steps:
+      ##################### BEGIN boilerplate steps #####################
+      - name: Get branch names
+        id: branch-name
+        uses: tj-actions/branch-names@v5.4
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.branch-name.outputs.head_ref_branch }}
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v1
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.R_LIBS_USER }}
+            ~/.staged.dependencies
+          key: ${{ runner.os }}-r-${{ matrix.config.r }}-${{ hashFiles('DESCRIPTION') }}
+          restore-keys: ${{ runner.os }}-r-${{ matrix.config.r }}
+
+      - name: Run Staged dependencies
+        uses: insightsengineering/staged-dependencies-action@v1
+        with:
+          run-system-dependencies: true
+          enable-check: false
+          renv-restore: false
+          cran-repos: "CRAN=${{ matrix.config.repos }}"
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      #####################c#####################
+
+      - name: Check
+        env:
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
+          _R_CHECK_FORCE_SUGGESTS_: false
+        run: |
+          if (!requireNamespace("rcmdcheck", quietly = TRUE)) install.packages("rcmdcheck")
+          options(crayon.enabled = TRUE)
+          check_error_on <- "${{ inputs.error-on }}"
+          if (check_error_on == "") {
+            check_error_on <- "note"
+          }
+          rcmdcheck::rcmdcheck(
+            args = c("--no-manual", "--as-cran"),
+            error_on = check_error_on,
+            check_dir = "check"
+          )
+        shell: Rscript {0}
+
+      - name: Upload check results
+        if: failure()
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ runner.os }}-r${{ matrix.config.r }}-results
+          path: check
+
+```
+
+::: footer
+Learn more: [File Location: r-cmd-check.yml](https://raw.githubusercontent.com/pharmaverse/admiralci/main/.github/workflows/r-cmd-check.yml)
+:::
+
+## R-CMD Checks
+
+::: {.absolute top="0" left="100%"}
+::: {.sectionhead}
+1 [2 3 4 5 6 7 8]{style="opacity:0.25"}
+:::
+:::
+
+- Success! 
+
+![](images/success_rcmd.png)
+
+## Linters
+
+::: {.absolute top="0" left="100%"}
+::: {.sectionhead}
+[1]{style="opacity:0.25"} 2 [3 4 5 6 7 8]{style="opacity:0.25"}
+:::
+:::
+
+``` {.r}
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      error-on:
+        description: Input for the 'error_on' parameter in rcmdcheck::rcmdcheck()
+        required: false
+        default: note
+        type: string
+  push:
+    branches:
+      - main
+      - devel
+  pull_request:
+    branches:
+      - main
+      - devel
+
+name: R CMD Check
+
+concurrency:
+  group: r-cmd-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    if: >
+      !contains(github.event.commits[0].message, '[skip r-cmd-check]')
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: ubuntu-latest, r: '3.6', repos: 'https://cran.microsoft.com/snapshot/2020-02-29/'}
+          - {os: ubuntu-latest, r: '4.0', repos: 'https://cran.microsoft.com/snapshot/2021-03-31/'}
+          - {os: ubuntu-20.04, r: 'release', repos: 'https://packagemanager.rstudio.com/cran/__linux__/focal/latest'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: true
+      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+      R_REPOS: ${{ matrix.config.repos }}
+
+    steps:
+      ##################### BEGIN boilerplate steps #####################
+      - name: Get branch names
+        id: branch-name
+        uses: tj-actions/branch-names@v5.4
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.branch-name.outputs.head_ref_branch }}
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v1
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.R_LIBS_USER }}
+            ~/.staged.dependencies
+          key: ${{ runner.os }}-r-${{ matrix.config.r }}-${{ hashFiles('DESCRIPTION') }}
+          restore-keys: ${{ runner.os }}-r-${{ matrix.config.r }}
+
+      - name: Run Staged dependencies
+        uses: insightsengineering/staged-dependencies-action@v1
+        with:
+          run-system-dependencies: true
+          enable-check: false
+          renv-restore: false
+          cran-repos: "CRAN=${{ matrix.config.repos }}"
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      #####################c#####################
+
+      - name: Check
+        env:
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
+          _R_CHECK_FORCE_SUGGESTS_: false
+        run: |
+          if (!requireNamespace("rcmdcheck", quietly = TRUE)) install.packages("rcmdcheck")
+          options(crayon.enabled = TRUE)
+          check_error_on <- "${{ inputs.error-on }}"
+          if (check_error_on == "") {
+            check_error_on <- "note"
+          }
+          rcmdcheck::rcmdcheck(
+            args = c("--no-manual", "--as-cran"),
+            error_on = check_error_on,
+            check_dir = "check"
+          )
+        shell: Rscript {0}
+
+      - name: Upload check results
+        if: failure()
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ runner.os }}-r${{ matrix.config.r }}-results
+          path: check
+
+```
+
+::: footer
+Learn more: [File Location: r-cmd-check.yml](https://raw.githubusercontent.com/pharmaverse/admiralci/main/.github/workflows/r-cmd-check.yml)
+:::
+
+## Pretty Code {auto-animate="true"}
+
+-   Over 20 syntax highlighting themes available
+-   Default theme optimized for accessibility
+
+``` r
+# Define a server for the Shiny app
+function(input, output) {
+  
+  # Fill in the spot we created for a plot
+  output$phonePlot <- renderPlot({
+    # Render a barplot
+  })
+}
+```
+
+::: footer
+Learn more: [Syntax Highlighting](https://quarto.org/docs/output-formats/html-code.html#highlighting)
+:::
+
+## Code Animations {auto-animate="true"}
+
+-   Over 20 syntax highlighting themes available
+-   Default theme optimized for accessibility
+
+``` r
+# Define a server for the Shiny app
+function(input, output) {
+  
+  # Fill in the spot we created for a plot
+  output$phonePlot <- renderPlot({
+    # Render a barplot
+    barplot(WorldPhones[,input$region]*1000, 
+            main=input$region,
+            ylab="Number of Telephones",
+            xlab="Year")
+  })
+}
+```
+
+::: footer
+Learn more: [Code Animations](https://quarto.org/docs/presentations/revealjs/advanced.html#code-animations)
+:::
+
+## Line Highlighting
+
+-   Highlight specific lines for emphasis
+-   Incrementally highlight additional lines
+
+``` {.python code-line-numbers="4-5|7|10"}
+import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.arange(0, 2, 0.01)
+theta = 2 * np.pi * r
+fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+ax.plot(theta, r)
+ax.set_rticks([0.5, 1, 1.5, 2])
+ax.grid(True)
+plt.show()
+```
+
+::: footer
+Learn more: [Line Highlighting](https://quarto.org/docs/presentations/revealjs/#line-highlighting)
+:::
