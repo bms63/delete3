@@ -1,22 +1,9 @@
-# cicdworkshopext 0.0.1
+# cicdworkshop 0.0.1
 
-## New Features
+A few useful CI/CD Links have been put here and one broken linke to R/Pharma
 
-- You can link the GitHub Issue to Changelog by using (#ISSUE-NUMBER)
+* GitHub Actions
+* Something 1
+* Something 2
+* [R/Pharma](https://rinpharma.xcom/)
 
-## Updates of Existing Functions
-
-- Updates that you have made for this version (#ISSUE-NUMBER)
-
-## Breaking Changes
-
-- Deprecated functions. (#ISSUE-NUMBER)
-- Bug Fixes (#ISSUE-NUMBER)
-
-## Documentation
-
-- Stuff that you did (#ISSUE-NUMBER)
-
-## Various
-
-- Stuff that you did (#ISSUE-NUMBER)
